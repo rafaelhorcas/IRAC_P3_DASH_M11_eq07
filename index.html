@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IRAC</title>
+    <style>
+      canvas {
+        width: 800px !important;
+        height: 400px !important;
+        margin: 20px auto;
+        display: block;
+      }
+    </style>
   </head>
   <body>
     <div class="code">
@@ -14,9 +22,15 @@
       <p>Video Buffer: <span id="buffer"></span></p>
       <p>Video Representation: <span id="representation"></span></p>
     </div>
+    <div>
+      <canvas id="myChart"></canvas>
+    </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.4/dash.all.debug.min.js" integrity="sha512-2l5itP1xsGb11N61XtRLC+ANlSc3+FOMQ5Ob3+Yam8FwQPtxvSS1GzKUJ6uzhEKMPuQxGhWlGRaUiIVUdci3tw==" crossorigin="anonymous"></script>
-    <script>document.addEventListener("DOMContentLoaded", function () {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha512-Nq18NiUbU5CwGkebYDTqV0hQG80DQH4t0RZvT2D3nmVYrAADGnDmuL9ON2H7c26mcN3otYEqESvERA7schji+g==" crossorigin="anonymous"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        setupChart();
         init();
       });
       
@@ -27,6 +41,82 @@
           },
         },
       };
+      const MAX_POINTS = 60;
+      let chart, bitrateData = [], bufferData = [], labels = [];
+
+      function setupChart() {
+        const ctx = document.getElementById("myChart").getContext("2d");
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Bitrate (kbps)",
+                data: bitrateData,
+                borderColor: "rgb(255, 99, 132)",
+                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                fill: true,
+                tension: 0.1,
+                yAxisID: "y",
+              },
+              {
+                label: "Buffer (s)",
+                data: bufferData,
+                borderColor: "rgb(54, 162, 235)",
+                backgroundColor: "rgba(54, 162, 235, 0.2)",
+                fill: true,
+                tension: 0.1,
+                yAxisID: "y1",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            animation: false,
+            interaction: {
+              mode: 'index',
+              intersect: false,
+            },
+            stacked: false,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Hora",
+                },
+                ticks: {
+                  callback: function (value, index) {
+                    const date = new Date(labels[index]);
+                    return date.toLocaleTimeString();
+                  },
+                },
+              },
+              y: {
+                type: "linear",
+                display: true,
+                position: "left",
+                title: {
+                  display: true,
+                  text: "Bitrate (kbps)",
+                },
+              },
+              y1: {
+                type: "linear",
+                display: true,
+                position: "right",
+                title: {
+                  display: true,
+                  text: "Buffer (s)",
+                },
+                grid: {
+                  drawOnChartArea: false,
+                },
+              },
+            },
+          },
+        });
+      }
 
       function init() {
         var video,
@@ -58,12 +148,23 @@
                 ) / 1000
               )
             : NaN;
+          const elapsedTime = new Date(); 
           document.getElementById("buffer").innerText = bufferLevel + " s";
           document.getElementById("bitrate").innerText = bitrate + " Kbps";
           document.getElementById("representation").innerText = repSwitch.to;
+            
+          labels.push(elapsedTime);
+          bitrateData.push(bitrate);
+          bufferData.push(bufferLevel.toFixed(2));
+          if (labels.length > MAX_POINTS) {
+            labels.shift();
+            bitrateData.shift();
+            bufferData.shift();
+          }
+          chart.update();
           }
         }, 500);
       }
     </script>
-  </body> 
+  </body>
 </html>
